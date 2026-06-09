@@ -1,0 +1,95 @@
+\\================================================================================
+BACKGROUND CONCEPTS: NEURAL NETWORKS, PDEs, AND DMD
+================================================================================
+
+1. WHAT DOES A NEURAL NETWORK DO?
+--------------------------------------------------------------------------------
+At its core, a neural network is a "universal function approximator." You feed 
+it an input (x), it passes that input through layers of interconnected nodes 
+(neurons) multiplied by adjustable weights and biases, and it spits out a 
+prediction (y). 
+
+During training, the network calculates how wrong its prediction is using a 
+"loss function" and uses optimization algorithms (like gradient descent) to 
+tweak its weights. Over time, it learns the underlying mathematical mapping 
+between inputs and outputs without being explicitly programmed with the rules.
+
+
+2. WHAT IS A PHYSICS-INFORMED NEURAL NETWORK (PINN)?
+--------------------------------------------------------------------------------
+A standard neural network requires massive amounts of data to learn a pattern. 
+A PINN fixes this by embedding the laws of physics directly into the network’s 
+loss function, usually in the form of differential equations.
+
+The Damped Oscillator Example:
+Imagine a mass on a spring bouncing in water. The physics governing its 
+displacement x(t) over time is known: 
+
+    m*(d^2x/dt^2) + c*(dx/dt) + k*x = 0
+
+    Where:
+    - m = mass
+    - c = damping (water resistance)
+    - k = spring stiffness
+
+Instead of needing thousands of data points of the spring's position to learn 
+its motion, a PINN is trained on just a few points (like its starting position). 
+For any random time 't' it guesses, we calculate the derivatives (velocity and 
+acceleration) using the network itself and plug them into the equation above. 
+If the equation doesn't equal zero, the network penalizes itself. The physics 
+acts as a strict guide, ensuring physically impossible predictions aren't made.
+
+
+3. WHAT IS A PARTIAL DIFFERENTIAL EQUATION (PDE) & WHY DO WE SOLVE THEM?
+--------------------------------------------------------------------------------
+A Differential Equation describes how a quantity changes relative to another 
+variable (e.g., how position changes over time). A *Partial* Differential 
+Equation (PDE) involves functions that change with respect to multiple 
+independent variables—typically space (x, y, z) and time (t).
+
+Why we solve them:
+Almost all continuous physical phenomena are written in the language of PDEs:
+- Fluid Dynamics: Weather forecasting and aerodynamics (Navier-Stokes).
+- Heat Transfer: How heat spreads across a CPU or turbine blade (Heat Equation).
+- Finance: How option prices change over time (Black-Scholes).
+
+Solving a PDE means finding the exact mathematical function that satisfies 
+these rate-of-change laws across a specific space and time.
+
+
+4. WHAT ARE NUMERICAL PDE SOLVERS?
+--------------------------------------------------------------------------------
+Most real-world PDEs are too mathematically complex to solve exactly using pen 
+and paper. Instead, we use "numerical solvers" to approximate the solution on 
+a computer.
+
+Finite Difference Method (FDM):
+FDM is the simplest numerical approach. It breaks continuous space and time 
+into a discrete grid of points (like pixels). Instead of looking at continuous 
+curves, it approximates derivatives using the differences between neighboring 
+grid points. 
+
+For example, the velocity (first derivative) at grid point 'i' is approximated:
+    du/dx ≈ (u_{i+1} - u_i) / delta_x
+
+By setting up these simple algebraic relationships for every point on the grid, 
+the computer solves a giant matrix of equations step-by-step to simulate the 
+entire system.
+
+
+5. WHAT IS DYNAMIC MODE DECOMPOSITION (DMD)?
+--------------------------------------------------------------------------------
+Imagine you have a complex, chaotic video of a fluid swirling behind a cylinder. 
+The raw data contains thousands of moving pixels across hundreds of frames, 
+making it incredibly hard to analyze mathematically.
+
+DMD is a data-driven technique that takes these snapshots of data and extracts 
+the dominant underlying patterns, called "modes." 
+
+- Each mode represents a specific spatial structure (e.g., a repeating vortex).
+- Each mode is tied to a specific "eigenvalue," which tells you exactly how 
+  fast that pattern oscillates and whether it is growing, decaying, or staying 
+  stable over time.
+
+In short, DMD decomposes complex, chaotic data into a simple sum of individual 
+waves, letting you see the underlying rhythm of a chaotic system.
