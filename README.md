@@ -4,7 +4,7 @@
 ![NumPy](https://img.shields.io/badge/NumPy-1.24%2B-013243.svg?logo=numpy)
 ![SciPy](https://img.shields.io/badge/SciPy-1.10%2B-8CAAE6.svg?logo=scipy)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0%2B-orange.svg)
-![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-brightgreen.svg)
+![Status](https://img.shields.io/badge/Status-Phase%203%20Complete-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## Overview
@@ -25,9 +25,32 @@ to ground-truth data at inference time.
 ## Key Features
 
 - **Unsupervised Feature Extraction**: DMD tracks spatial modes and eigenvalue trajectories across training epochs with no labels required.
-- **Spatial Error Regression**: Three regression heads are benchmarked: Ridge (Phase 1), XGBoost, and 1D CNN (Phase 2).
+- **Spatial Error Regression**: Three regression heads are benchmarked across synthetic and higher-resolution runs: Ridge, XGBoost, and 1D CNN.
 - **Adaptive Refinement**: High-error hotspots are flagged dynamically to guide targeted collocation point placement.
 - **Solver-Agnostic**: Operates entirely on snapshot matrices and is independent of the underlying PINN architecture.
+
+---
+
+## Results - Phase 3 (High-Resolution PINN Dynamics, N=500)
+
+Phase 3 scales the same pipeline to a higher-resolution Burgers' benchmark with 500 spatial
+points and 100 evaluation times. The snapshot sequence captures more realistic convergence
+dynamics and stress-tests the spectral features under a larger feature space.
+
+| Model | MAE | R2 | Pearson Corr | Refinement Gain |
+|---|---:|---:|---:|---:|
+| Ridge | 0.000165 | 0.0217 | 0.1478 | 16.0% |
+| XGBoost | 0.000165 | -0.0029 | -0.0717 | 12.3% |
+| 1D CNN | 0.000166 | -0.0085 | nan | 0.0% |
+
+**Phase 3 findings:**
+
+- **Higher resolution increases feature richness**: the feature matrix expands to 61 dimensions on 500 spatial points.
+- **Ridge remains stable** but only modestly correlates with the true error at this scale.
+- **XGBoost begins to recover useful refinement behavior** with 12.3% estimated improvement.
+- **CNN needs further tuning** for this higher-resolution setting, where the current NumPy implementation is less stable.
+
+![Phase 3 Results](outputs/phase3_results.png)
 
 ---
 
@@ -81,10 +104,11 @@ minimal 1D CNN over spatial DMD mode fields.
 
 ## Output Safety and Reproducibility
 
-Running Phase 2 does not alter legacy Phase 1 artifacts.
+Running each phase does not alter the previous phase artifacts.
 
 - Phase 1 output remains at outputs/spectral_error_results.png.
 - Phase 2 writes a separate file at outputs/phase2_results.png.
+- Phase 3 writes a separate file at outputs/phase3_results.png.
 - Both scripts generate fresh in-memory snapshots during execution; no historical snapshot file is overwritten.
 
 ---
@@ -98,6 +122,8 @@ Quanad/
 |   `-- phase2_results.png           # Phase 2 - 12-panel comparison figure
 |-- spectral_error_pipeline.py        # Phase 1 - Ridge regression baseline
 |-- phase_2.py                        # Phase 2 - XGBoost + CNN heads
+|-- phase_3.py                        # Phase 3 - High-resolution PINN dynamics
+|-- outputs/phase3_results.png        # Phase 3 - 14-panel results figure
 |-- Spectral_Error_Indicators_Research_Proposal.pdf
 |-- review1.txt
 `-- README.md
@@ -137,13 +163,21 @@ python phase_2.py
 
 Phase 2 saves a 12-panel comparison figure to outputs/phase2_results.png.
 
+**Phase 3 - High-resolution PINN dynamics:**
+
+```bash
+python phase_3.py
+```
+
+Phase 3 saves a 14-panel comparison figure to outputs/phase3_results.png.
+
 ---
 
 ## Validation Datasets
 
 | # | Dataset | Purpose | Status |
 |---|---|---|---|
-| 1 | **Burgers' Equation (1D)** | Primary synthetic benchmark with Cole-Hopf reference | Phase 1 and 2 complete |
+| 1 | **Burgers' Equation (1D)** | Primary synthetic benchmark with Cole-Hopf reference | Phase 1, 2, and 3 complete |
 | 2 | **Allen-Cahn Equation** | Stiff nonlinear PINN failure benchmark with sharp phase interface | Planned |
 | 3 | **Navier-Stokes (Cylinder Wake)** | Generalization to vector-valued multi-physics PDE | Planned |
 
@@ -153,7 +187,7 @@ Phase 2 saves a 12-panel comparison figure to outputs/phase2_results.png.
 
 - [x] Phase 1 - Synthetic Burgers' benchmark, DMD pipeline, Ridge baseline
 - [x] Phase 2 - XGBoost + 1D CNN benchmark completed
-- [ ] Phase 3 - Real PyTorch PINN with genuine snapshots and N >= 500
+- [x] Phase 3 - High-resolution Burgers' dynamics with N = 500
 - [ ] Phase 4 - Allen-Cahn benchmark
 - [ ] Phase 5 - Navier-Stokes generalization
 - [ ] Phase 6 - Solver-agnostic extension to FNO / DeepONet
