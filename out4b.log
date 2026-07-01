@@ -1,0 +1,22 @@
+================================================================================
+PHASE 4B: OOD Generalization Test (Zero-Shot Error Prediction)
+================================================================================
+Computing exact numerical solutions for IC A and IC B...
+
+--- Training PINN A ---
+
+--- Training PINN B ---
+
+Extracting DMD features for A and B...
+Training CNN solely on PINN A...
+Evaluating Frozen CNN on PINN B (Zero-Shot Transfer)...
+
+================================================================================
+PHASE 4B ZERO-SHOT METRICS (Tested on PINN B)
+================================================================================
+Zero-Shot DMD+CNN Correlation : 0.0438
+Standard PDE Residual Corr    : 0.7039
+================================================================================
+Generalization failed: CNN overfit to IC A.
+
+✓ Phase 4B results figure saved → outputs/phase4b_generalization.png

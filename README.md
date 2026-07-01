@@ -192,6 +192,13 @@ Phase 4 abandons synthetic snapshots and trains a true physics-informed neural n
 
 ![Phase 4 Results](outputs/phase4_results.png)
 
+### Phase 4B: Out-Of-Distribution (OOD) Limitation
+
+To test if the learned CNN indicator could generalize to completely unseen equations, we trained the CNN on the DMD features of Initial Condition A ($x^2 \cos(\pi x)$) and tested it zero-shot on Initial Condition B ($\sin(\pi x)$).
+
+**Result:** The zero-shot correlation dropped to **0.0438**. The CNN overfits to the spatial structure of the specific DMD modes of the training simulation. 
+**Conclusion:** The framework is not a universal zero-shot indicator. It strictly functions as a data-driven diagnostic tool for repeated evaluations on a specific PDE, requiring Out-Of-Fold (OOF) cross-validation to map DMD modes to local errors.
+
 ---
 
 ## Validation Datasets
