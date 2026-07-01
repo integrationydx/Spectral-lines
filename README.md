@@ -188,6 +188,7 @@ Phase 4 abandons synthetic snapshots and trains a true physics-informed neural n
 **Phase 4 findings (Breakthrough):**
 - **DMD captures what the residual misses**: While the PDE residual achieves a decent correlation (r=0.729) with the true error, our DMD+CNN model almost perfectly predicts it (r=0.992).
 - **Publishable Result**: This confirms that analyzing the intermediate training snapshots of a PINN provides significantly more information about true local errors than standard residual-based methods.
+- **Note on Experimental Design**: The DMD+CNN is a learned indicator requiring labeled error data during training (via OOF cross-validation), whereas the PDE residual requires zero training and is an analytical computation. This is the correct design for a learned indicator that generalizes within a solved PDE, but is an important distinction when interpreting the baseline comparison.
 
 ![Phase 4 Results](outputs/phase4_results.png)
 
