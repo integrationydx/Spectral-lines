@@ -5,7 +5,6 @@
 ![SciPy](https://img.shields.io/badge/SciPy-1.10%2B-8CAAE6.svg?logo=scipy)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0%2B-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Phase%204%20Complete-brightgreen.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## Overview
 
@@ -255,9 +254,3 @@ A PyTorch 2D Convolutional Neural Network (Conv2D) is trained on $9 \times 9$ lo
 
 Aditya Alur  
 PES University, EC Campus
-
----
-
-## License
-
-This project is licensed under the MIT License.
