@@ -1,0 +1,16 @@
+================================================================================
+PHASE 5: 2D Navier-Stokes Generalization (Kovasznay Flow)
+================================================================================
+Training 2D Navier-Stokes PINN...
+Collected 50 velocity magnitude snapshots.
+Evaluating 2D DMD+CNN (5-Fold OOF)...
+
+======================================================================
+PHASE 5 METRICS (2D Navier-Stokes Kovasznay Flow)
+======================================================================
+2D PDE Residual Correlation : -0.0073
+2D DMD+CNN Correlation      : 0.9918
+======================================================================
+SUCCESS: 2D Spectral DMD features predict local error BETTER than the 2D PDE residual!
+
+✓ Phase 5 results figure saved → outputs/phase5_navierstokes.png
