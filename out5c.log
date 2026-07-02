@@ -1,0 +1,32 @@
+================================================================================
+PHASE 5C: Algorithmic Mode Alignment & Generalization
+================================================================================
+
+--- Processing Reynolds Number = 20 ---
+
+--- Processing Reynolds Number = 22 ---
+
+--- Processing Reynolds Number = 25 ---
+
+--- Processing Reynolds Number = 30 ---
+
+--- Processing Reynolds Number = 40 ---
+
+================================================================================
+Performing Mode Alignment via Hungarian Algorithm...
+Re=22 aligned to Re=20. Average Channel Similarity: 0.9427
+Re=25 aligned to Re=20. Average Channel Similarity: 0.9360
+Re=30 aligned to Re=20. Average Channel Similarity: 0.9448
+Re=40 aligned to Re=20. Average Channel Similarity: 0.9255
+
+Training CNN on ALIGNED [Re=20, Re=25] Envelope...
+
+================================================================================
+Re    | Test Type       | PDE Residual    | Aligned DMD+CNN      | Status
+================================================================================
+22    | Interpolation   | -0.0164         | 0.6242               | DEGRADED
+30    | Extrapolation   | -0.0544         | 0.0943               | DEGRADED
+40    | Extrapolation   | 0.1235          | 0.2886               | DEGRADED
+================================================================================
+
+✓ Phase 5C metrics figure saved → outputs/phase5c_aligned_generalization.png

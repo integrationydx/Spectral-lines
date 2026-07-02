@@ -228,12 +228,15 @@ A PyTorch 2D Convolutional Neural Network (Conv2D) is trained on $9 \times 9$ lo
 
 ## Roadmap
 
-- [x] Phase 1 - Synthetic Burgers' benchmark, DMD pipeline, Ridge baseline
-- [x] Phase 2 - XGBoost + 1D CNN benchmark completed
-- [x] Phase 3 - High-resolution synthetic Burgers' dynamics with N = 500
-- [x] Phase 4 - Allen-Cahn benchmark (Real PINN Dynamics)
-- [x] Phase 5 - Navier-Stokes generalization
-- [ ] Phase 6 - Solver-agnostic extension to FNO / DeepONet
+- [x] Phase 1: 1D Burgers' Equation (Synthetic Gradient Dynamics)
+- [x] Phase 2: Feature Extraction (Dynamic Mode Decomposition)
+- [x] Phase 3: Spatial Error Prediction (CNN / XGBoost)
+- [x] Phase 4: Stiff 1D PINN Dynamics (Allen-Cahn Equation)
+- [x] Phase 4B: Out-of-Distribution Generalization Testing
+- [x] Phase 5: 2D Navier-Stokes Vector-Valued PDEs (Kovasznay Flow)
+- [x] Phase 5B: Parametric Reynolds Sweep Generalization
+- [x] Phase 5C: Algorithmic Mode Alignment via Hungarian Matching
+- [ ] Phase 6: Neural Operators (FNO/DeepONet) [Future Work] FNO / DeepONet
 
 ---
 
@@ -254,3 +257,14 @@ A PyTorch 2D Convolutional Neural Network (Conv2D) is trained on $9 \times 9$ lo
 
 Aditya Alur  
 PES University, EC Campus
+
+### Phase 5B: Parametric Generalization (Reynolds Sweep)
+To test if the framework could generalize across continuous parameter sweeps (a standard CFD use case), we trained the CNN on $Re \in \{20, 25\}$ and evaluated zero-shot on interpolation ($Re=22$) and extrapolation ($Re=30, 40$).
+Zero-shot generalization failed massively. The CNN decoupled from the error map ($r=0.13$ at $Re=22$). Visual inspection revealed **Mode Reshuffling**: DMD sorts modes by energy, and when the Reynolds number shifted, the fluid's energy shifted, causing the DMD algorithm to secretly scramble the feature channels.
+
+### Phase 5C: Algorithmic Mode Alignment via Hungarian Matching
+To rule out the "Mode Reshuffling" confound, we introduced an algorithmic alignment step using the Hungarian Algorithm (`scipy.optimize.linear_sum_assignment`). By computing the 2D spatial cosine similarity between the unseen test modes and the $Re=20$ reference modes, we optimally reordered the channels to maximize structural alignment (averaging >0.92 structural similarity).
+
+Even with perfectly aligned channels, generalization on extrapolation points ($Re=30, 40$) remained extremely poor ($r < 0.30$). 
+
+**Final Conclusion:** We rigorously proved a fundamental limitation of spatial features. Even when mathematically aligned, the *underlying physical shape of the error itself* shifts as parameters shift (e.g., the wake stretches further downstream at $Re=40$). The spatial convolutions of a CNN, locked to specific grid coordinates, are inherently brittle to these physical shifts. Future work must transition to translation-invariant metrics (such as Pointwise Temporal Variance) to achieve zero-shot generalization.
