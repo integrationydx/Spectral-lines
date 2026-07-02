@@ -1,0 +1,27 @@
+================================================================================
+PHASE 5B: Parametric Generalization (Reynolds Sweep)
+================================================================================
+
+--- Processing Reynolds Number = 20 ---
+
+--- Processing Reynolds Number = 22 ---
+
+--- Processing Reynolds Number = 25 ---
+
+--- Processing Reynolds Number = 30 ---
+
+--- Processing Reynolds Number = 40 ---
+
+✓ Mode Alignment Figure saved → outputs/phase5b_mode_alignment.png
+
+Training CNN on [Re=20, Re=25] Envelope...
+
+================================================================================
+Re    | Test Type       | PDE Residual    | DMD+CNN (Zero-Shot)  | Status
+================================================================================
+22    | Interpolation   | -0.0164         | 0.1352               | DEGRADED
+30    | Extrapolation   | -0.0544         | 0.0493               | DEGRADED
+40    | Extrapolation   | 0.1235          | -0.2380              | FAILED
+================================================================================
+
+✓ Phase 5B metrics figure saved → outputs/phase5b_generalization.png
