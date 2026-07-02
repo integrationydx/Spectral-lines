@@ -184,7 +184,7 @@ for Re in reynolds_numbers:
     A_tilde = U_r.T @ S[:, 1:] @ Vt_r.T @ np.diag(1.0 / sigma_r)
     eigvals, W = np.linalg.eig(A_tilde)
     Phi = S[:, 1:] @ Vt_r.T @ np.diag(1.0 / sigma_r) @ W
-    Phi_spatial = np.abs(Phi).reshape(Nx, Ny, r)
+    Phi_spatial = np.real(Phi).reshape(Nx, Ny, r)
     
     data_store[Re] = {
         'true_error': true_error_2d.flatten(),
@@ -220,7 +220,9 @@ for Re in [22, 25, 30, 40]:
     
     Phi_test_aligned = np.zeros_like(Phi_test)
     for ref_i, test_j in zip(row_ind, col_ind):
-        Phi_test_aligned[:, :, ref_i] = Phi_test[:, :, test_j]
+        sign = np.sign(cos_sim[ref_i, test_j])
+        if sign == 0: sign = 1.0
+        Phi_test_aligned[:, :, ref_i] = sign * Phi_test[:, :, test_j]
     
     data_store[Re]['Phi_aligned'] = Phi_test_aligned
     avg_similarity = np.mean(np.abs(cos_sim[row_ind, col_ind]))
