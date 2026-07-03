@@ -117,7 +117,9 @@ This result rigorously proves a fundamental limitation: even after correcting fo
 ---
 
 ## 6. Conclusion
-We presented a novel Spectral Error Indicator framework for Physics-Informed Neural Networks. By analyzing intermediate training snapshots via Dynamic Mode Decomposition and Convolutional Neural Networks, we achieved near-perfect local error predictions on stiff 1D equations and complex 2D Navier-Stokes flows. While out-of-distribution generalization remains limited by the spatial dependence of DMD modes, the framework vastly outperforms standard PDE residuals for in-distribution adaptive refinement targeting. Future work will explore translation-invariant temporal variance metrics and extensions to Neural Operators (e.g., FNOs) to achieve zero-shot generalization.
+We presented a novel Spectral Error Indicator framework for Physics-Informed Neural Networks. By analyzing intermediate training snapshots via Dynamic Mode Decomposition and Convolutional Neural Networks, we achieved near-perfect local error predictions on stiff 1D equations and complex 2D Navier-Stokes flows. While out-of-distribution generalization remains limited by the spatial dependence of DMD modes, the framework vastly outperforms standard PDE residuals for in-distribution adaptive refinement targeting.
+
+Crucially, this fundamental constraint does not preclude practical utility. For industrial workflows involving repeated evaluation of the same PDE family with a known baseline solution (e.g., adaptive collocation refinement, or triaging which of many near-duplicate aerodynamic parameter sweeps warrant an expensive re-solve), the framework's in-distribution accuracy alone offers massive computational savings without requiring cross-parameter generalization. Future work will explore translation-invariant temporal variance metrics and extensions to Neural Operators (e.g., FNOs) to push these boundaries further.
 
 ---
 
