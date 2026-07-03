@@ -15,7 +15,10 @@ Physics-Informed Neural Networks (PINNs) integrate physical governing equations 
 
 A PINN may smoothly satisfy boundary conditions while harboring massive localized errors near shock fronts or sharp phase interfaces. Currently, the industry standard for adaptive collocation refinement relies on the magnitude of the PDE physics residual. However, the residual does not always linearly track the true error, especially in nonlinear or multi-physics problems.
 
-In this work, we hypothesize that the *training dynamics* of a PINN contain a wealth of unexploited information regarding localized errors. Regions where the network struggles to converge exhibit distinct spectral signatures across training epochs. We propose analyzing these snapshots using Dynamic Mode Decomposition (DMD) and mapping the resulting spatial modes to true local error via a Convolutional Neural Network (CNN).
+**The Real-World Motivation: Zero-Shot Adaptive Refinement for Parameter Sweeps.** 
+The ultimate goal of a neural PDE error indicator is to enable massive, automated parameter sweeps (e.g., varying aerodynamic shapes or Reynolds numbers) without requiring expensive, high-fidelity ground-truth solvers for every variation. In this paradigm, a traditional solver (e.g., CFD) is run *once* on a baseline scenario to generate exact errors. A deep learning indicator is trained offline to map internal PINN features to these true errors. Finally, the frozen indicator is deployed "zero-shot" on hundreds of unseen, fast PINN evaluations of varying parameters, acting as an automated targeting system that instantly flags spatial regions where the PINN fails.
+
+In this work, we hypothesize that the *training dynamics* of a PINN contain a wealth of unexploited information to serve as this indicator. Regions where the network struggles to converge exhibit distinct spectral signatures across training epochs. We propose analyzing these snapshots using Dynamic Mode Decomposition (DMD) and mapping the resulting spatial modes to true local error via a Convolutional Neural Network (CNN).
 
 **Contributions:**
 1. We introduce a novel pipeline that extracts DMD spectral features from intermediate PINN training snapshots.
