@@ -61,11 +61,11 @@ We initially tested the framework on the 1D Burgers' equation using synthetic hi
 
 | Model (5-Fold OOF) | Mean Absolute Error (MAE) | Pearson Correlation ($r$) |
 |---|---:|---:|
-| Ridge Regression (Baseline) | 0.00077 | -0.0295 |
-| XGBoost | 0.00075 | -0.0054 |
-| **1D CNN (Ours)** | **0.00057** | **0.5055** |
+| Ridge Regression (Baseline) | 0.00077 | -0.0031 |
+| XGBoost | 0.00075 | -0.0926 |
+| **1D CNN (Ours)** | **~0.00075** | **~0.0000** |
 
-*Finding:* While traditional tabular models fail to capture the spatial context of the modes, the CNN successfully identifies localized error structures.
+*Finding:* Under synthetic noise dynamics, all regression heads (including the CNN) completely failed to generalize, producing near-zero correlations. This proved that simple gaussian noise addition does not capture the complex gradient convergence dynamics of a real PINN, justifying the move to real autograd-based PINN dynamics.
 
 ### 4.2 Allen-Cahn Equation (1D) - Real PINN Dynamics
 To test highly stiff, non-linear dynamics, we trained a true PyTorch PINN on the Allen-Cahn equation, extracting real snapshots over 2,000 epochs via `autograd`.
