@@ -24,7 +24,7 @@ In this work, we hypothesize that the *training dynamics* of a PINN contain a we
 1. We introduce a novel pipeline that extracts DMD spectral features from intermediate PINN training snapshots.
 2. We demonstrate that for in-distribution repeated evaluations, CNNs trained on localized DMD mode patches predict spatial error with near-perfect correlation ($r > 0.99$) across highly stiff PDEs, significantly outperforming PDE residuals.
 3. We successfully scale the framework to 2D vector-valued, multi-physics CFD problems (Navier-Stokes).
-4. We rigorously test zero-shot generalization, establishing the mathematical limits of spatial DMD modes for out-of-distribution and parameter-shifted physical conditions.
+4. We rigorously test zero-shot generalization, establishing the mathematical limits of spatial DMD modes for out-of-distribution and parameter-shifted physical conditions, clarifying the intended operating regime of the framework.
 
 ---
 
