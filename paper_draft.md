@@ -89,10 +89,27 @@ To prove scalability to higher-dimensional, vector-valued, multi-physics PDEs, w
 
 ---
 
-## 5. Limitations: Out-Of-Distribution Generalization
-We rigorously tested the zero-shot generalization capabilities of the model (Phase 4B). A CNN was trained on the DMD modes of Initial Condition A ($x^2 \cos(\pi x)$) and tested zero-shot on Initial Condition B ($\sin(\pi x)$).
+## 5. Limitations: Out-Of-Distribution and Parametric Generalization
+To test the boundary limits of the framework, we executed two generalization experiments: (1) completely unrelated Initial Conditions (Phase 4B) and (2) a Parametric Reynolds Number sweep from $Re=20$ to $Re=40$ (Phase 5B).
 
-The zero-shot correlation dropped to $r = 0.0438$. Because spatial DMD modes are heavily tied to the specific physical geometry of the initial condition, the spatial convolutions overfit to the locations of the modes in the training set. We conclude that while the framework is a highly accurate data-driven indicator for repeated evaluations (where OOF labeling is possible), it cannot serve as a universal zero-shot indicator using raw spatial modes.
+In both cases, zero-shot generalization failed. Even in strict interpolation ($Re=22$ after training on $Re=20, 25$), the correlation dropped to $r = 0.13$. 
+
+**The Mode Reshuffling Confound**
+Through visual inspection, we identified that as physical parameters shift even slightly, the fluid's energy distributions change, causing the DMD algorithm to "reshuffle" the mode order. When the CNN processes a channel expecting a specific spatial structure but receives a different one, prediction fails. 
+
+**Algorithmic Mode Alignment via Hungarian Matching (Phase 5C)**
+To rigorously test the "true ceiling" of what spectral feature alignment could achieve, we introduced an algorithmic Mode Alignment step. Using the Hungarian Algorithm (`scipy.optimize.linear_sum_assignment`), we computed the absolute spatial cosine similarity between the unseen test modes and the reference ($Re=20$) modes. We then optimally permuted the test channels to maximize structural alignment, explicitly applying a sign-flip correction to any mode matched via a negative cosine similarity. This ensured the CNN received optimally aligned and polarity-corrected feature channels.
+
+| Test Type | Re | PDE Residual | Sign-Corrected Aligned DMD+CNN | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Interpolation | 22 | -0.0164 | 0.0069 | DEGRADED |
+| Extrapolation | 30 | -0.0544 | 0.0621 | DEGRADED |
+| Extrapolation | 40 | 0.1235 | 0.3057 | DEGRADED |
+
+Despite optimal channel permutation and strict polarity correction, generalization completely failed across all interpolation and extrapolation points, failing to cross the $r > 0.70$ usefulness threshold.
+
+**Conclusion on Spatial Features**
+This result rigorously proves a fundamental limitation: even after correcting for both mode permutation and sign ambiguity — the two most likely confounds — zero-shot parametric generalization remained weak, suggesting the limitation is genuinely physical (the error's spatial shape shifts with Re) rather than a DMD bookkeeping artifact. The spatial convolutions of the CNN, locked to specific $(x,y)$ grid coordinates, are inherently brittle to these parametric physical shifts. Future work must transition to translation and parameter-invariant features, such as Pointwise Temporal Variance, to achieve generalized zero-shot error mapping.
 
 ---
 
