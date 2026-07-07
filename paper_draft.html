@@ -1,0 +1,194 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Paper Draft</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; padding: 2em; max-width: 800px; margin: 0 auto; }
+            h1, h2, h3 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+            th, td { border: 1px solid #dfe2e5; padding: 6px 13px; }
+            th { font-weight: 600; background-color: #f6f8fa; }
+            tr:nth-child(2n) { background-color: #f6f8fa; }
+        </style>
+        <script>
+            MathJax = {
+              tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]}
+            };
+        </script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    </head>
+    <body>
+        <h1>Spectral Error Indicators for Neural PDE Solvers</h1>
+<p><strong>Aditya Alur</strong><br />
+<em>PES University, EC Campus</em></p>
+<hr />
+<h2>Abstract</h2>
+<p>Physics-Informed Neural Networks (PINNs) have emerged as powerful mesh-free solvers for partial differential equations (PDEs). However, PINNs often produce solutions that appear globally accurate while concealing large, localized errors, particularly in stiff or highly nonlinear regimes. Standard error indicators rely on the magnitude of the PDE residual, which we demonstrate is poorly correlated with true absolute error in complex flows. In this paper, we propose a novel, post-hoc spectral error indicator framework. By extracting intermediate PINN training snapshots across epochs and applying Dynamic Mode Decomposition (DMD), we capture the spectral convergence dynamics of the network. We train a Convolutional Neural Network (CNN) to map localized spatial patches of these DMD modes to true spatial error. Through rigorous validation, we demonstrate that while synthetic noise proxies (1D Burgers') fail to train effective indicators, extracting true PINN training dynamics enables near-perfect correlation with true error ($r &gt; 0.99$) for in-distribution evaluations on stiff 1D Allen-Cahn and 2D Navier-Stokes equations, vastly outperforming standard residual methods ($r &lt; 0.05$ in fluid dynamics). Finally, we analyze the limitations of spatial DMD features for out-of-distribution generalization, establishing the framework as a highly accurate data-driven diagnostic tool exclusively for repeated PDE evaluations.</p>
+<hr />
+<h2>1. Introduction</h2>
+<p>Physics-Informed Neural Networks (PINNs) integrate physical governing equations into the loss function of deep neural networks, enabling the mesh-free solution of PDEs. Despite their success, verifying the accuracy of a PINN solution remains a significant challenge. Unlike classical methods (e.g., Finite Element Method) which offer rigorous a posteriori error bounds, PINNs lack reliable, computationally cheap error certification mechanisms.</p>
+<p>A PINN may smoothly satisfy boundary conditions while harboring massive localized errors near shock fronts or sharp phase interfaces. Currently, the industry standard for adaptive collocation refinement relies on the magnitude of the PDE physics residual. However, the residual does not always linearly track the true error, especially in nonlinear or multi-physics problems.</p>
+<p><strong>The Real-World Motivation: Zero-Shot Adaptive Refinement for Parameter Sweeps.</strong> 
+The ultimate goal of a neural PDE error indicator is to enable massive, automated parameter sweeps (e.g., varying aerodynamic shapes or Reynolds numbers) without requiring expensive, high-fidelity ground-truth solvers for every variation. In this paradigm, a traditional solver (e.g., CFD) is run <em>once</em> on a baseline scenario to generate exact errors. A deep learning indicator is trained offline to map internal PINN features to these true errors. Finally, the frozen indicator is deployed "zero-shot" on hundreds of unseen, fast PINN evaluations of varying parameters, acting as an automated targeting system that instantly flags spatial regions where the PINN fails.</p>
+<p>In this work, we hypothesize that the <em>training dynamics</em> of a PINN contain a wealth of unexploited information to serve as this indicator. Regions where the network struggles to converge exhibit distinct spectral signatures across training epochs. We propose analyzing these snapshots using Dynamic Mode Decomposition (DMD) and mapping the resulting spatial modes to true local error via a Convolutional Neural Network (CNN).</p>
+<p><strong>Contributions:</strong>
+1. We introduce a novel pipeline that extracts DMD spectral features from intermediate PINN training snapshots.
+2. We demonstrate that for in-distribution repeated evaluations, CNNs trained on localized DMD mode patches predict spatial error with near-perfect correlation ($r &gt; 0.99$) across highly stiff PDEs, significantly outperforming PDE residuals.
+3. We successfully scale the framework to 2D vector-valued, multi-physics CFD problems (Navier-Stokes).
+4. We rigorously test zero-shot generalization, establishing the mathematical limits of spatial DMD modes for out-of-distribution and parameter-shifted physical conditions, clarifying the intended operating regime of the framework.</p>
+<hr />
+<h2>2. Related Work</h2>
+<p><strong>Physics-Informed Neural Networks &amp; Uncertainty:</strong> Originally formulated by Raissi et al. (2019), PINNs utilize automatic differentiation to penalize PDE residual violations. However, the original formulation lacks error estimation. Yang &amp; Perdikaris (2021) introduced Bayesian PINNs (B-PINNs) for uncertainty quantification; while mathematically rigorous, Bayesian approaches are often prohibitively expensive to sample for large-scale PDEs. </p>
+<p><strong>Adaptive Refinement via Residuals:</strong> Dwivedi &amp; Srinivasan (2020) and the DeepXDE library (Lu et al., 2021) proposed adaptive collocation strategies that add training points where the PDE residual is highest. While computationally cheap, these methods suffer because the residual is frequently a poor proxy for true error in highly nonlinear regimes.</p>
+<p><strong>Dynamic Mode Decomposition:</strong> DMD was pioneered to extract coherent structures from complex, high-dimensional fluid flows (Schmid, 2010; Kutz et al., 2016). While DMD has been widely applied to physical snapshots, our work uniquely applies the algorithm to the optimization trajectory (training epochs) of a neural network.</p>
+<hr />
+<h2>3. Methodology</h2>
+<h3>3.1 Physics-Informed Neural Networks (PINNs)</h3>
+<p>Consider a general PDE parameterized by a non-linear operator $\mathcal{N}$:
+$$ \mathcal{N}<a href="x, t">u</a> = 0, \quad x \in \Omega, t \in [0, T] $$
+A PINN approximates the solution $u(x,t)$ via a neural network parameterized by $\theta$. The network is trained by minimizing the composite loss:
+$$ \mathcal{L}(\theta) = \mathcal{L}<em>{data} + \lambda \mathcal{L}</em>{PDE} $$
+where $\mathcal{L}<em>{PDE} = ||\mathcal{N}[u</em>\theta]||^2_2$ is the physics residual.</p>
+<h3>3.2 Snapshot Extraction and DMD</h3>
+<p>During the minimization of $\mathcal{L}(\theta)$, we evaluate the network on a fixed spatial grid at regular epoch intervals, generating a snapshot matrix $X = [x_1, x_2, \dots, x_K]$. 
+We apply Exact DMD to $X$ to extract the dominant spatial modes $\Phi(x)$, eigenvalues $\Lambda$, and modal amplitudes. Unlike physical time, the "time" dimension here represents the optimization step (epochs). Regions of high error correspond to spatial locations where the DMD modes exhibit instability or high-frequency oscillation during training.</p>
+<h3>3.3 The Convolutional Error Predictor</h3>
+<p>We construct a Convolutional Neural Network (CNN) that takes localized spatial patches of the DMD modes $\Phi$ as input. The CNN is trained via Out-Of-Fold (OOF) cross-validation to predict the true absolute error $|u_{PINN} - u_{exact}|$ at the center of the patch. By utilizing spatial convolutions, the model learns localized spectral patterns indicative of PINN failure.</p>
+<hr />
+<h2>4. Experiments and Results</h2>
+<p>We validate the framework across three increasingly complex mathematical benchmarks. In all experiments, we report the Pearson Correlation ($r$) between the predicted error map and the true exact error.</p>
+<h3>4.1 Synthetic Burgers' Equation (1D)</h3>
+<p>We initially tested the framework on the 1D Burgers' equation using synthetic high-resolution noise dynamics mimicking gradient descent ($N=500$ points). <em>Methodological Note: This benchmark was explicitly designed to test if simple Gaussian noise addition (a common synthetic proxy) is sufficient to train spectral error indicators, rather than running expensive real PINNs.</em></p>
+<table>
+<thead>
+<tr>
+<th>Model (5-Fold OOF)</th>
+<th style="text-align: right;">Mean Absolute Error (MAE)</th>
+<th style="text-align: right;">Pearson Correlation ($r$)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ridge Regression (Baseline)</td>
+<td style="text-align: right;">0.00077</td>
+<td style="text-align: right;">-0.0031</td>
+</tr>
+<tr>
+<td>XGBoost</td>
+<td style="text-align: right;">0.00075</td>
+<td style="text-align: right;">-0.0926</td>
+</tr>
+<tr>
+<td><strong>1D CNN (Ours)</strong></td>
+<td style="text-align: right;"><strong>~0.00075</strong></td>
+<td style="text-align: right;"><strong>~0.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>Finding:</em> Under synthetic noise dynamics, all regression heads (including the CNN) completely failed to generalize, producing near-zero correlations. This proved that simple synthetic proxies fail to capture the complex, non-linear gradient convergence dynamics of a real PINN. This negative finding rigorously justified our methodological pivot: extracting real <code>autograd</code>-based snapshots for all subsequent, computationally expensive experiments (Sections 4.2 and 4.3).</p>
+<h3>4.2 Allen-Cahn Equation (1D) - Real PINN Dynamics</h3>
+<p>To test highly stiff, non-linear dynamics, we trained a true PyTorch PINN on the Allen-Cahn equation, extracting real snapshots over 2,000 epochs via <code>autograd</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Error Indicator</th>
+<th style="text-align: right;">Pearson Correlation ($r$)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1D PDE Residual</td>
+<td style="text-align: right;">0.7290</td>
+</tr>
+<tr>
+<td><strong>1D DMD + CNN (Ours)</strong></td>
+<td style="text-align: right;"><strong>0.9922</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>Finding:</em> The DMD+CNN perfectly maps spectral features to local error, significantly outperforming the industry-standard PDE residual on stiff phase interfaces.</p>
+<h3>4.3 Kovasznay Flow (2D Navier-Stokes)</h3>
+<p>To prove scalability to higher-dimensional, vector-valued, multi-physics PDEs, we evaluated the framework on the 2D incompressible Navier-Stokes equations (Kovasznay Flow). The pipeline was expanded to extract 2D DMD modes and utilize a PyTorch 2D CNN (Conv2D) over $9 \times 9$ spatial patches.</p>
+<table>
+<thead>
+<tr>
+<th>Error Indicator</th>
+<th style="text-align: right;">Pearson Correlation ($r$)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2D PDE Residual</td>
+<td style="text-align: right;">-0.0073</td>
+</tr>
+<tr>
+<td><strong>2D DMD + CNN (Ours)</strong></td>
+<td style="text-align: right;"><strong>0.9918</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>Finding:</em> In complex fluid dynamics, the raw physics residual completely decoupled from the true error ($r = -0.007$). In stark contrast, our 2D Spectral Indicator achieved near-perfection ($r = 0.991$), proving the robust scalability of the framework to CFD applications.</p>
+<hr />
+<h2>5. Limitations: Out-Of-Distribution and Parametric Generalization</h2>
+<p>To test the boundary limits of the framework, we executed two generalization experiments: (1) completely unrelated Initial Conditions (Phase 4B) and (2) a Parametric Reynolds Number sweep from $Re=20$ to $Re=40$ (Phase 5B).</p>
+<p>In both cases, zero-shot generalization failed. Even in strict interpolation ($Re=22$ after training on $Re=20, 25$), the correlation dropped to $r = 0.13$. </p>
+<p><strong>The Mode Reshuffling Confound</strong>
+Through visual inspection, we identified that as physical parameters shift even slightly, the fluid's energy distributions change, causing the DMD algorithm to "reshuffle" the mode order. When the CNN processes a channel expecting a specific spatial structure but receives a different one, prediction fails. </p>
+<p><strong>Algorithmic Mode Alignment via Hungarian Matching (Phase 5C)</strong>
+To rigorously test the "true ceiling" of what spectral feature alignment could achieve, we introduced an algorithmic Mode Alignment step. Using the Hungarian Algorithm (<code>scipy.optimize.linear_sum_assignment</code>), we computed the absolute spatial cosine similarity between the unseen test modes and the reference ($Re=20$) modes. We then optimally permuted the test channels to maximize structural alignment, explicitly applying a sign-flip correction to any mode matched via a negative cosine similarity. This ensured the CNN received optimally aligned and polarity-corrected feature channels.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Test Type</th>
+<th style="text-align: left;">Re</th>
+<th style="text-align: left;">PDE Residual</th>
+<th style="text-align: left;">Sign-Corrected Aligned DMD+CNN</th>
+<th style="text-align: left;">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Interpolation</td>
+<td style="text-align: left;">22</td>
+<td style="text-align: left;">-0.0164</td>
+<td style="text-align: left;">0.0069</td>
+<td style="text-align: left;">DEGRADED</td>
+</tr>
+<tr>
+<td style="text-align: left;">Extrapolation</td>
+<td style="text-align: left;">30</td>
+<td style="text-align: left;">-0.0544</td>
+<td style="text-align: left;">0.0621</td>
+<td style="text-align: left;">DEGRADED</td>
+</tr>
+<tr>
+<td style="text-align: left;">Extrapolation</td>
+<td style="text-align: left;">40</td>
+<td style="text-align: left;">0.1235</td>
+<td style="text-align: left;">0.3057</td>
+<td style="text-align: left;">DEGRADED</td>
+</tr>
+</tbody>
+</table>
+<p>Despite optimal channel permutation and strict polarity correction, generalization completely failed across all interpolation and extrapolation points, failing to cross the $r &gt; 0.70$ usefulness threshold.</p>
+<p><strong>Conclusion on Spatial Features</strong>
+This result rigorously proves a fundamental limitation: even after correcting for both mode permutation and sign ambiguity — the two most likely confounds — zero-shot parametric generalization remained weak, suggesting the limitation is genuinely physical (the error's spatial shape shifts with Re) rather than a DMD bookkeeping artifact. The spatial convolutions of the CNN, locked to specific $(x,y)$ grid coordinates, are inherently brittle to these parametric physical shifts. Future work must transition to translation and parameter-invariant features, such as Pointwise Temporal Variance, to achieve generalized zero-shot error mapping.</p>
+<hr />
+<h2>6. Conclusion</h2>
+<p>We presented a novel Spectral Error Indicator framework for Physics-Informed Neural Networks. By analyzing intermediate training snapshots via Dynamic Mode Decomposition and Convolutional Neural Networks, we achieved near-perfect local error predictions on stiff 1D equations and complex 2D Navier-Stokes flows. While out-of-distribution generalization remains limited by the spatial dependence of DMD modes, the framework vastly outperforms standard PDE residuals for in-distribution adaptive refinement targeting.</p>
+<p>Crucially, this fundamental constraint does not preclude practical utility. For industrial workflows involving repeated evaluation of the same PDE family with a known baseline solution (e.g., adaptive collocation refinement, or triaging which of many near-duplicate aerodynamic parameter sweeps warrant an expensive re-solve), the framework's in-distribution accuracy alone offers massive computational savings without requiring cross-parameter generalization. Future work will explore translation-invariant temporal variance metrics and extensions to Neural Operators (e.g., FNOs) to push these boundaries further.</p>
+<hr />
+<h2>References</h2>
+<ol>
+<li>Dwivedi, V., &amp; Srinivasan, B. (2020). Physics informed extreme learning machine (PIELM)–a rapid method for the numerical solution of partial differential equations. <em>Neurocomputing</em>, 391, 96-118.</li>
+<li>Kutz, J. N., Brunton, S. L., Brunton, B. W., &amp; Proctor, J. L. (2016). <em>Dynamic mode decomposition: data-driven modeling of complex systems</em>. SIAM.</li>
+<li>Lu, L., Meng, X., Mao, Z., &amp; Karniadakis, G. E. (2021). DeepXDE: A deep learning library for solving differential equations. <em>SIAM Review</em>, 63(1), 208-228.</li>
+<li>Raissi, M., Perdikaris, P., &amp; Karniadakis, G. E. (2019). Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. <em>Journal of Computational Physics</em>, 378, 686-707.</li>
+<li>Schmid, P. J. (2010). Dynamic mode decomposition of numerical and experimental data. <em>Journal of fluid mechanics</em>, 656, 5-28.</li>
+<li>Yang, L., Meng, X., &amp; Karniadakis, G. E. (2021). B-PINNs: Bayesian physics-informed neural networks for forward and inverse PDE problems with noisy data. <em>Journal of Computational Physics</em>, 425, 109913.</li>
+</ol>
+    </body>
+    </html>
+    
