@@ -247,8 +247,16 @@ corr_res_B = np.corrcoef(true_error_B, residual_B)[0, 1]
 print("\n" + "="*80)
 print("PHASE 4B ZERO-SHOT METRICS (Tested on PINN B)")
 print("="*80)
+
+# Compute Temporal Variance for PINN B
+S_B = np.array([s.flatten() for s in snapshots_B]).T
+var_B_flat = np.var(S_B[:, -20:], axis=1)
+var_B_spatial = np.mean(var_B_flat.reshape(Nx, Nt_pred), axis=1)
+corr_var_B = np.corrcoef(true_error_B, var_B_spatial)[0, 1]
+
 print(f"Zero-Shot DMD+CNN Correlation : {corr_cnn_B:.4f}")
 print(f"Standard PDE Residual Corr    : {corr_res_B:.4f}")
+print(f"Temporal Variance Corr        : {corr_var_B:.4f}")
 print("="*80)
 if corr_cnn_B > corr_res_B:
     print("HOLY GRAIL ACHIEVED: The CNN learned a universal error mapping!")
@@ -290,10 +298,12 @@ ax = fig.add_subplot(gs[1, :])
 norm_true_B = true_error_B / true_error_B.max()
 norm_cnn_B = pred_cnn_B / (pred_cnn_B.max() + 1e-8)
 norm_res_B = residual_B / (residual_B.max() + 1e-8)
+norm_var_B = var_B_spatial / (var_B_spatial.max() + 1e-8)
 
 ax.plot(x, norm_true_B, color='#ffd700', lw=2.5, label='True Error B', alpha=0.9)
 ax.plot(x, norm_cnn_B, color='#00d4ff', lw=2, linestyle='--', label=f'Zero-Shot DMD+CNN (r={corr_cnn_B:.3f})')
 ax.plot(x, norm_res_B, color='#ff6b6b', lw=2, linestyle=':', label=f'PDE Residual (r={corr_res_B:.3f})')
+ax.plot(x, norm_var_B, color='#32cd32', lw=2, linestyle='-.', label=f'Temporal Variance (r={corr_var_B:.3f})')
 ax.set_xlabel('Space (x)', color=TXT)
 ax.legend(fontsize=10, facecolor='#1a1a2e', labelcolor=TXT)
 style_ax(ax, 'Zero-Shot Generalization: DMD+CNN vs PDE Residual on Unseen PINN B')

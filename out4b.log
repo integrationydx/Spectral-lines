@@ -16,6 +16,7 @@ PHASE 4B ZERO-SHOT METRICS (Tested on PINN B)
 ================================================================================
 Zero-Shot DMD+CNN Correlation : 0.0438
 Standard PDE Residual Corr    : 0.7039
+Temporal Variance Corr        : 0.0198
 ================================================================================
 Generalization failed: CNN overfit to IC A.
 

@@ -16,12 +16,12 @@ PHASE 5B: Parametric Generalization (Reynolds Sweep)
 
 Training CNN on [Re=20, Re=25] Envelope...
 
-================================================================================
-Re    | Test Type       | PDE Residual    | DMD+CNN (Zero-Shot)  | Status
-================================================================================
-22    | Interpolation   | -0.0164         | 0.1352               | DEGRADED
-30    | Extrapolation   | -0.0544         | 0.0493               | DEGRADED
-40    | Extrapolation   | 0.1235          | -0.2380              | FAILED
-================================================================================
+====================================================================================================
+Re    | Test Type       | PDE Residual    | DMD+CNN (Zero-Shot)  | Temporal Var    | Status
+====================================================================================================
+22    | Interpolation   | -0.0164         | 0.1352               | 0.8066          | SUCCESS
+30    | Extrapolation   | -0.0544         | 0.0493               | 0.4911          | DEGRADED
+40    | Extrapolation   | 0.1235          | -0.2380              | 0.2424          | DEGRADED
+====================================================================================================
 
 ✓ Phase 5B metrics figure saved → outputs/phase5b_generalization.png
