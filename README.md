@@ -126,9 +126,12 @@ Quanad/
 |-- spectral_error_pipeline.py       # Phase 1 - Ridge regression baseline
 |-- phase_2.py                       # Phase 2 - XGBoost + CNN heads
 |-- phase_3.py                       # Phase 3 - High-resolution PINN dynamics
-|-- phase_4.py                       # Phase 4 - Allen-Cahn benchmark
+|-- phase_7_burgers_sweep.py         # Phase 7 - Burgers Viscosity Sweep
 |-- Spectral_Error_Indicators_Research_Proposal.pdf
 |-- review1.txt
+|-- generate_html.py                 # Utility script to convert paper_draft.md to HTML with MathJax
+|-- paper_draft.md                   # Source markdown for the research paper
+|-- paper_draft.html                 # Compiled HTML version of the paper
 `-- README.md
 ```
 
