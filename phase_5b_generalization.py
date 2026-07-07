@@ -294,7 +294,7 @@ for Re, t_type in zip([22, 30, 40], ['Interpolation', 'Extrapolation', 'Extrapol
     corr_var = np.corrcoef(y_test, var_flat)[0, 1]
     results[Re] = {'preds': preds, 'y': y_test, 'corr_cnn': corr_cnn, 'corr_res': corr_res, 'var': var_flat}
     
-    status = "SUCCESS" if (corr_var > 0.60) else "DEGRADED"
+    status = "SUCCESS" if (corr_var > corr_res and corr_var > 0.70) else "DEGRADED" if (corr_var > corr_res) else "FAILED"
     print(f"{Re:<5} | {t_type:<15} | {corr_res:<15.4f} | {corr_cnn:<20.4f} | {corr_var:<15.4f} | {status}")
 print("="*100)
 
