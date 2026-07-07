@@ -5,7 +5,8 @@ import os
 import matplotlib as mpl
 
 # Enforce guide's aesthetic requirements
-mpl.rcParams['font.family'] = 'Times New Roman'
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['font.serif'] = ['Times New Roman']
 mpl.rcParams['axes.grid'] = False
 mpl.rcParams['figure.facecolor'] = 'white'
 mpl.rcParams['axes.facecolor'] = 'white'

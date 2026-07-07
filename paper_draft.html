@@ -61,14 +61,56 @@ We apply Exact DMD to $X$ to extract the dominant spatial modes $\Phi(x)$, eigen
 <hr />
 <h2>4. Experiments and Results</h2>
 <p>We validate the framework across three increasingly complex mathematical benchmarks and generalization stress tests. Table 1 provides a comprehensive summary of all findings across the study.</p>
-<p><strong>Table 1: Master Quantitative Summary of Error Indicators</strong>
-| PDE / Test Case | Mathematical Stiffness | Standard PDE Residual (r) | Spatial DMD+CNN (r) | Temporal Variance (r) |
-|---|---|---|---|---|
-| 1D Burgers' Equation | Simple Physics | ~0.51 | N/A | &lt; 0.40 |
-| 1D Allen-Cahn | Stiff Interface | 0.7290 | 0.9922 | N/A |
-| 2D Navier-Stokes In-Dist (Re=20) | Complex Flow | -0.0073 | 0.9918 | 0.6500 |
-| 2D Navier-Stokes Param Sweep (Re=40) | Parametric Shift | 0.1235 | 0.3057 | 0.2424 |
-| 1D Allen-Cahn IC Swap | Topological Shift | 0.0512 | &lt; 0.05 | 0.0198 |</p>
+<p><strong>Table 1: Master Quantitative Summary of Error Indicators</strong></p>
+<table>
+<thead>
+<tr>
+<th>PDE / Test Case</th>
+<th>Mathematical Stiffness</th>
+<th>Standard PDE Residual (r)</th>
+<th>Spatial DMD+CNN (r)</th>
+<th>Temporal Variance (r)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1D Burgers' Equation</td>
+<td>Simple Physics</td>
+<td>~0.51</td>
+<td>N/A</td>
+<td>&lt; 0.40</td>
+</tr>
+<tr>
+<td>1D Allen-Cahn</td>
+<td>Stiff Interface</td>
+<td>0.7290</td>
+<td>0.9929</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>2D Navier-Stokes In-Dist (Re=20)</td>
+<td>Complex Flow</td>
+<td>-0.0073</td>
+<td>0.9918</td>
+<td>0.6500</td>
+</tr>
+<tr>
+<td>2D Navier-Stokes Param Sweep (Re=40)</td>
+<td>Parametric Shift</td>
+<td>0.1235</td>
+<td>-0.2380</td>
+<td>0.2424</td>
+</tr>
+<tr>
+<td>1D Allen-Cahn IC Swap*</td>
+<td>Topological Shift</td>
+<td>0.7039</td>
+<td>&lt; 0.05</td>
+<td>0.0198</td>
+</tr>
+</tbody>
+</table>
+<p><em>* Note: An IC swap was performed on 1D Allen-Cahn rather than 2D Navier-Stokes to establish baseline topological failure limits before scaling to higher dimensions.</em></p>
 <h3>4.1 Synthetic Burgers' Equation (1D)</h3>
 <p>We initially tested the framework on the 1D Burgers' equation using synthetic high-resolution noise dynamics mimicking gradient descent ($N=500$ points). <em>Methodological Note: This benchmark was explicitly designed to test if simple Gaussian noise addition (a common synthetic proxy) is sufficient to train spectral error indicators, rather than running expensive real PINNs.</em></p>
 <p><em>Finding:</em> Under synthetic noise dynamics, all regression heads (including the CNN) completely failed to generalize, producing near-zero correlations ($r \approx 0.0$). This proved that simple synthetic proxies fail to capture the complex, non-linear gradient convergence dynamics of a real PINN. This negative finding rigorously justified our methodological pivot: extracting real <code>autograd</code>-based snapshots for all subsequent, computationally expensive experiments (Sections 4.2 and 4.3).</p>

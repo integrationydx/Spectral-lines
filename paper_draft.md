@@ -61,13 +61,16 @@ We construct a Convolutional Neural Network (CNN) that takes localized spatial p
 We validate the framework across three increasingly complex mathematical benchmarks and generalization stress tests. Table 1 provides a comprehensive summary of all findings across the study.
 
 **Table 1: Master Quantitative Summary of Error Indicators**
+
 | PDE / Test Case | Mathematical Stiffness | Standard PDE Residual (r) | Spatial DMD+CNN (r) | Temporal Variance (r) |
 |---|---|---|---|---|
 | 1D Burgers' Equation | Simple Physics | ~0.51 | N/A | < 0.40 |
-| 1D Allen-Cahn | Stiff Interface | 0.7290 | 0.9922 | N/A |
+| 1D Allen-Cahn | Stiff Interface | 0.7290 | 0.9929 | N/A |
 | 2D Navier-Stokes In-Dist (Re=20) | Complex Flow | -0.0073 | 0.9918 | 0.6500 |
-| 2D Navier-Stokes Param Sweep (Re=40) | Parametric Shift | 0.1235 | 0.3057 | 0.2424 |
-| 1D Allen-Cahn IC Swap | Topological Shift | 0.0512 | < 0.05 | 0.0198 |
+| 2D Navier-Stokes Param Sweep (Re=40) | Parametric Shift | 0.1235 | -0.2380 | 0.2424 |
+| 1D Allen-Cahn IC Swap* | Topological Shift | 0.7039 | < 0.05 | 0.0198 |
+
+*\* Note: An IC swap was performed on 1D Allen-Cahn rather than 2D Navier-Stokes to establish baseline topological failure limits before scaling to higher dimensions.*
 
 ### 4.1 Synthetic Burgers' Equation (1D)
 We initially tested the framework on the 1D Burgers' equation using synthetic high-resolution noise dynamics mimicking gradient descent ($N=500$ points). *Methodological Note: This benchmark was explicitly designed to test if simple Gaussian noise addition (a common synthetic proxy) is sufficient to train spectral error indicators, rather than running expensive real PINNs.*
