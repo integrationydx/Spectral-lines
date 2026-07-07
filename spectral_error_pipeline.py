@@ -25,18 +25,6 @@ np.random.seed(42)
 # ─────────────────────────────────────────────
 # 1. GROUND TRUTH: Burgers' equation via Cole-Hopf
 # ─────────────────────────────────────────────
-def burgers_exact(x, t, nu=0.01/np.pi, n_terms=100):
-    """Exact solution via Cole-Hopf transformation (Fourier series)."""
-    u = np.zeros_like(x, dtype=float)
-    for n in range(1, n_terms):
-        u += (-2 * nu * (-1)**n * n * np.pi *
-              np.exp(-nu * n**2 * np.pi**2 * t) *
-              np.sin(n * np.pi * x))
-    denom = 1.0
-    for n in range(1, n_terms):
-        denom += (-1)**n * np.exp(-nu * n**2 * np.pi**2 * t) * np.cos(n * np.pi * x)
-    # Simpler: use the known tanh shock solution for nu=0.01/pi
-    return -np.tanh((x - 0.5*t) / (2*nu + 1e-8)) + np.tanh(0.5 / (2*nu + 1e-8))
 
 # Domain
 Nx = 100
