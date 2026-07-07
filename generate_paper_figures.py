@@ -2,6 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 import os
+import matplotlib as mpl
+
+# Enforce guide's aesthetic requirements
+mpl.rcParams['font.family'] = 'Times New Roman'
+mpl.rcParams['axes.grid'] = False
+mpl.rcParams['figure.facecolor'] = 'white'
+mpl.rcParams['axes.facecolor'] = 'white'
+mpl.rcParams['savefig.facecolor'] = 'white'
 
 os.makedirs('outputs', exist_ok=True)
 
