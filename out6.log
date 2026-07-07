@@ -1,0 +1,16 @@
+================================================================================
+PHASE 6: Deterministic Spectral Error Indicators
+================================================================================
+Training 2D Navier-Stokes PINN...
+Collected 50 velocity magnitude snapshots.
+Computing Deterministic Error Indicators...
+
+======================================================================
+PHASE 6 METRICS (Deterministic Error Indicators)
+======================================================================
+1. DMD Recon Error Correlation      : -0.0932
+2. Unstable Mode Filter Correlation : 0.2609
+3. Temporal Variance Correlation    : 0.6495
+======================================================================
+
+✓ Phase 6 results figure saved → outputs/phase6_comparison.png
