@@ -99,10 +99,10 @@ t_grid_flat = torch.tensor(T_grid.flatten(), dtype=torch.float32).unsqueeze(1).r
 # -------------------------------------------------------------
 nu_list = [
     (0.01/np.pi, 'Reference 1'),
-    #(0.0040, 'Reference 2'),
-    #(0.0035, 'Interpolation'),
-    #(0.0020, 'Extrapolation'),
-    #(0.0050, 'Extrapolation')
+    (0.0040, 'Reference 2'),
+    (0.0035, 'Interpolation'),
+    (0.0020, 'Extrapolation'),
+    (0.0050, 'Extrapolation')
 ]
 
 results = {}

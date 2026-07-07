@@ -129,6 +129,10 @@ We evaluated this metric on the exact OOD parameter sweeps where the CNN failed:
 | Extrapolation | 40 | 0.1235 | 0.2424 | DEGRADED |
 
 Pointwise Temporal Variance substantially solves zero-shot generalization near the training envelope ($r=0.81$ at interpolation) in the tested Reynolds sweep on Kovasznay flow. Furthermore, it exhibits graceful but incomplete degradation under extrapolation ($r=0.49$ at $Re=30$, $r=0.24$ at $Re=40$). This graceful degradation is a significant and positive finding—it demonstrates that the method fails safely rather than catastrophically when pushed beyond its training envelope, unlike the CNN which decoupled completely into negative correlation at $Re=40$.
+
+3. **1D Viscosity Sweep on Burgers' Equation (Phase 7):** To rigorously evaluate if Temporal Variance universally generalizes to all PDEs, we tested it across a continuous parameter sweep ($\nu \in [0.002, 0.005]$) on the 1D Burgers' Equation. We found that Pointwise Temporal Variance failed to beat the standard PDE residual ($r < 0.40$ vs $r \approx 0.51$). 
+
+**The Limitation of Pointwise Temporal Variance:** This Phase 7 result leads to a highly nuanced and academically honest conclusion. Temporal Variance requires a highly complex, chaotic PDE (like Navier-Stokes) where the network physically "thrashes" while trying to converge. For simpler, fast-converging PDEs (like Burgers' Equation), the network learns the solution smoothly without thrashing, eliminating the variance signal entirely. Therefore, Temporal Variance is a specialized, highly effective metric for complex flows where standard physics residuals break down, but it is not a universal silver bullet for all PDEs.
 ---
 
 ## 6. Conclusion

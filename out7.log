@@ -15,11 +15,11 @@ PHASE 7: Burgers Equation Viscosity Sweep (Temporal Variance Validation)
 ====================================================================================================
 Viscosity (nu)  | Test Type       | PDE Residual    | Temporal Variance    | Status
 ====================================================================================================
-0.00318         | Reference 1     | 0.5155          | -0.0603              | FAILED
-0.00400         | Reference 2     | 0.6109          | 0.1136               | FAILED
-0.00350         | Interpolation   | 0.4653          | 0.0486               | FAILED
-0.00200         | Extrapolation   | 0.4186          | 0.3283               | FAILED
-0.00500         | Extrapolation   | 0.5246          | -0.2319              | FAILED
+0.00318         | Reference 1     | 0.5155          | 0.4058               | FAILED
+0.00400         | Reference 2     | 0.6109          | 0.0223               | FAILED
+0.00350         | Interpolation   | 0.4653          | 0.1820               | FAILED
+0.00200         | Extrapolation   | 0.4186          | -0.2044              | FAILED
+0.00500         | Extrapolation   | 0.5246          | -0.1816              | FAILED
 ====================================================================================================
 
 ✓ Phase 7 results figure saved -> outputs/phase7_burgers_sweep.png
