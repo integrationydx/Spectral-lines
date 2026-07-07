@@ -28,6 +28,9 @@ to ground-truth data at inference time.
 - **Adaptive Refinement**: High-error hotspots are flagged dynamically to guide targeted collocation point placement.
 - **Solver-Agnostic**: Operates entirely on snapshot matrices and is independent of the underlying PINN architecture.
 
+> [!WARNING]
+> **Important Note on Phases 1–3 (Synthetic Benchmarks):** The codebase retains Phases 1, 2, and 3 for historical provenance. However, these early scripts rely on *synthetic* error addition rather than true gradient descent dynamics. As documented in our findings, synthetic noise fails to capture real PINN behavior, resulting in near-zero correlations ($R^2 < 0.1$). **The true breakthrough of this research begins at Phase 4**, where we transition to real PyTorch `autograd` PINNs. If you are evaluating this repository, please look at the results from Phase 4, 5, 6, and 7.
+
 ---
 
 ## Results - Phase 3 (High-Resolution Synthetic PINN Dynamics, N=500)
