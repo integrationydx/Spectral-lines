@@ -58,38 +58,33 @@ We construct a Convolutional Neural Network (CNN) that takes localized spatial p
 
 ## 4. Experiments and Results
 
-We validate the framework across three increasingly complex mathematical benchmarks. In all experiments, we report the Pearson Correlation ($r$) between the predicted error map and the true exact error.
+We validate the framework across three increasingly complex mathematical benchmarks and generalization stress tests. Table 1 provides a comprehensive summary of all findings across the study.
+
+**Table 1: Master Quantitative Summary of Error Indicators**
+| PDE / Test Case | Mathematical Stiffness | Standard PDE Residual (r) | Spatial DMD+CNN (r) | Temporal Variance (r) |
+|---|---|---|---|---|
+| 1D Burgers' Equation | Simple Physics | ~0.51 | N/A | < 0.40 |
+| 1D Allen-Cahn | Stiff Interface | 0.7290 | 0.9922 | N/A |
+| 2D Navier-Stokes In-Dist (Re=20) | Complex Flow | -0.0073 | 0.9918 | 0.6500 |
+| 2D Navier-Stokes Param Sweep (Re=40) | Parametric Shift | 0.1235 | 0.3057 | 0.2424 |
+| 1D Allen-Cahn IC Swap | Topological Shift | 0.0512 | < 0.05 | 0.0198 |
 
 ### 4.1 Synthetic Burgers' Equation (1D)
 We initially tested the framework on the 1D Burgers' equation using synthetic high-resolution noise dynamics mimicking gradient descent ($N=500$ points). *Methodological Note: This benchmark was explicitly designed to test if simple Gaussian noise addition (a common synthetic proxy) is sufficient to train spectral error indicators, rather than running expensive real PINNs.*
 
-| Model (5-Fold OOF) | Mean Absolute Error (MAE) | Pearson Correlation ($r$) |
-|---|---:|---:|
-| Ridge Regression (Baseline) | 0.00077 | -0.0031 |
-| XGBoost | 0.00075 | -0.0926 |
-| **1D CNN (Ours)** | **~0.00075** | **~0.0000** |
-
-*Finding:* Under synthetic noise dynamics, all regression heads (including the CNN) completely failed to generalize, producing near-zero correlations. This proved that simple synthetic proxies fail to capture the complex, non-linear gradient convergence dynamics of a real PINN. This negative finding rigorously justified our methodological pivot: extracting real `autograd`-based snapshots for all subsequent, computationally expensive experiments (Sections 4.2 and 4.3).
+*Finding:* Under synthetic noise dynamics, all regression heads (including the CNN) completely failed to generalize, producing near-zero correlations ($r \approx 0.0$). This proved that simple synthetic proxies fail to capture the complex, non-linear gradient convergence dynamics of a real PINN. This negative finding rigorously justified our methodological pivot: extracting real `autograd`-based snapshots for all subsequent, computationally expensive experiments (Sections 4.2 and 4.3).
 
 ### 4.2 Allen-Cahn Equation (1D) - Real PINN Dynamics
 To test highly stiff, non-linear dynamics, we trained a true PyTorch PINN on the Allen-Cahn equation, extracting real snapshots over 2,000 epochs via `autograd`.
 
-| Error Indicator | Pearson Correlation ($r$) |
-|---|---:|
-| 1D PDE Residual | 0.7290 |
-| **1D DMD + CNN (Ours)** | **0.9922** |
-
-*Finding:* The DMD+CNN perfectly maps spectral features to local error, significantly outperforming the industry-standard PDE residual on stiff phase interfaces.
+*Finding:* The DMD+CNN perfectly maps spectral features to local error ($r=0.992$), significantly outperforming the industry-standard PDE residual ($r=0.729$) on stiff phase interfaces.
 
 ### 4.3 Kovasznay Flow (2D Navier-Stokes)
 To prove scalability to higher-dimensional, vector-valued, multi-physics PDEs, we evaluated the framework on the 2D incompressible Navier-Stokes equations (Kovasznay Flow). The pipeline was expanded to extract 2D DMD modes and utilize a PyTorch 2D CNN (Conv2D) over $9 \times 9$ spatial patches.
 
-| Error Indicator | Pearson Correlation ($r$) |
-|---|---:|
-| 2D PDE Residual | -0.0073 |
-| **2D DMD + CNN (Ours)** | **0.9918** |
-
 *Finding:* In complex fluid dynamics, the raw physics residual completely decoupled from the true error ($r = -0.007$). In stark contrast, our 2D Spectral Indicator achieved near-perfection ($r = 0.991$), proving the robust scalability of the framework to CFD applications.
+
+![Figure 1: In-Distribution Superiority of Spectral Mapping](outputs/Figure_1.png)
 
 ---
 
@@ -104,16 +99,12 @@ Through visual inspection, we identified that as physical parameters shift even 
 **Algorithmic Mode Alignment via Hungarian Matching (Phase 5C)**
 To rigorously test the "true ceiling" of what spectral feature alignment could achieve, we introduced an algorithmic Mode Alignment step. Using the Hungarian Algorithm (`scipy.optimize.linear_sum_assignment`), we computed the absolute spatial cosine similarity between the unseen test modes and the reference ($Re=20$) modes. We then optimally permuted the test channels to maximize structural alignment, explicitly applying a sign-flip correction to any mode matched via a negative cosine similarity. This ensured the CNN received optimally aligned and polarity-corrected feature channels.
 
-| Test Type | Re | PDE Residual | Sign-Corrected Aligned DMD+CNN | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| Interpolation | 22 | -0.0164 | 0.0069 | DEGRADED |
-| Extrapolation | 30 | -0.0544 | 0.0621 | DEGRADED |
-| Extrapolation | 40 | 0.1235 | 0.3057 | DEGRADED |
-
-Despite optimal channel permutation and strict polarity correction, generalization completely failed across all interpolation and extrapolation points, failing to cross the $r > 0.70$ usefulness threshold.
+Despite optimal channel permutation and strict polarity correction, generalization completely failed across all interpolation and extrapolation points, failing to cross the $r > 0.70$ usefulness threshold (dropping as low as $r=0.006$ at $Re=22$).
 
 **Conclusion on Spatial Features**
 This result rigorously proves a fundamental limitation: even after correcting for both mode permutation and sign ambiguity, zero-shot parametric generalization remained weak. The spatial convolutions of the CNN, locked to specific $(x,y)$ grid coordinates, are inherently brittle to these parametric physical shifts. 
+
+![Figure 2: The Zero-Shot Spatial Failure & Mode Reshuffling](outputs/Figure_2.png)
 
 ### 5.1 Solving Interpolation with Pointwise Temporal Variance
 To overcome the spatial brittleness of the CNN, we transitioned to a deterministic, translation-invariant metric: **Pointwise Temporal Variance**. Instead of learning spatial structures, we simply compute the statistical variance of each spatial point across the final 20 snapshots (the late-stage "thrashing" of the network as it struggles to converge).
@@ -121,18 +112,16 @@ To overcome the spatial brittleness of the CNN, we transitioned to a determinist
 We evaluated this metric on the exact OOD parameter sweeps where the CNN failed:
 1. **1D IC Swap (Phase 4B):** The correlation collapsed ($r = 0.0198$). This provides an honest conclusion: when the underlying physics shift violently (like a completely different initial state), the training dynamics themselves decouple from the true error structure.
 2. **2D Reynolds Sweep (Phase 5B):** For parameter interpolation ($Re=22$), Temporal Variance hit a massive **$r = 0.8066$**! This completely shattered the CNN's performance ($r=0.13$) and the PDE residual ($r=-0.01$). 
-   
-| Test Type     | Re | PDE Residual | Temporal Variance | Status |
-|---------------|----|----|-----------|---------|
-| Interpolation | 22 | -0.0164 | 0.8066 | SUCCESS |
-| Extrapolation | 30 | -0.0544 | 0.4911 | DEGRADED |
-| Extrapolation | 40 | 0.1235 | 0.2424 | DEGRADED |
+
+![Figure 3: The Temporal Variance Breakthrough](outputs/Figure_3.png)
 
 Pointwise Temporal Variance substantially solves zero-shot generalization near the training envelope ($r=0.81$ at interpolation) in the tested Reynolds sweep on Kovasznay flow. Notably, the Temporal Variance correlation actually improved from the baseline training condition of $Re=20$ ($r=0.65$) to the OOD interpolation point $Re=22$ ($r=0.81$). This aligns perfectly with the mechanism of the metric: as the physical flow becomes more challenging (higher Reynolds number), the network struggles to converge, yielding a stronger, more accurate variance signal. Furthermore, it exhibits graceful but incomplete degradation under extrapolation ($r=0.49$ at $Re=30$, $r=0.24$ at $Re=40$). This graceful degradation is a significant and positive finding—it demonstrates that the method fails safely rather than catastrophically when pushed beyond its training envelope, unlike the CNN which decoupled completely into negative correlation at $Re=40$.
 
 3. **1D Viscosity Sweep on Burgers' Equation (Phase 7):** To rigorously evaluate if Temporal Variance universally generalizes to all PDEs, we tested it across a continuous parameter sweep ($\nu \in [0.002, 0.005]$) on the 1D Burgers' Equation. We found that Pointwise Temporal Variance failed to beat the standard PDE residual ($r < 0.40$ vs $r \approx 0.51$). 
 
 **The Limitation of Pointwise Temporal Variance:** This Phase 7 result leads to a highly nuanced and academically honest conclusion. Temporal Variance requires a highly complex, chaotic PDE (like Navier-Stokes) where the network physically "thrashes" while trying to converge. For simpler, fast-converging PDEs (like Burgers' Equation), the network learns the solution smoothly without thrashing, eliminating the variance signal entirely. Therefore, Temporal Variance is a specialized, highly effective metric for complex flows where standard physics residuals break down, but it is not a universal silver bullet for all PDEs.
+
+![Figure 4: Fundamental Boundary Limits of Data-Driven Diagnostics](outputs/Figure_4.png)
 ---
 
 ## 6. Conclusion
