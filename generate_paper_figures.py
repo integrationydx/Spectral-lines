@@ -53,7 +53,7 @@ def create_figure_1():
     plt.colorbar(im3, ax=ax3, fraction=0.046, pad=0.04)
     
     plt.tight_layout()
-    plt.savefig('outputs/Figure_1.png', dpi=300)
+    plt.savefig('outputs/Figure_1.pdf', dpi=300)
     plt.close()
 
 def create_figure_2():
@@ -103,7 +103,7 @@ def create_figure_2():
     plt.colorbar(im_fail, ax=ax_fail, fraction=0.046, pad=0.04)
     
     plt.tight_layout()
-    plt.savefig('outputs/Figure_2.png', dpi=300)
+    plt.savefig('outputs/Figure_2.pdf', dpi=300)
     plt.close()
 
 def create_figure_3():
@@ -138,7 +138,7 @@ def create_figure_3():
     plt.colorbar(im3, ax=ax3, fraction=0.046, pad=0.04)
     
     plt.tight_layout()
-    plt.savefig('outputs/Figure_3.png', dpi=300)
+    plt.savefig('outputs/Figure_3.pdf', dpi=300)
     plt.close()
 
 def create_figure_4():
@@ -187,7 +187,7 @@ def create_figure_4():
     ax3.legend()
     
     plt.tight_layout()
-    plt.savefig('outputs/Figure_4.png', dpi=300)
+    plt.savefig('outputs/Figure_4.pdf', dpi=300)
     plt.close()
 
 if __name__ == '__main__':
