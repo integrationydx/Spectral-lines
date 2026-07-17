@@ -136,13 +136,19 @@ for nu, label in nu_list:
         u_xx = torch.autograd.grad(u_x, x_f, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
         
         f_pred = u_t + u_pred_f * u_x - nu * u_xx
+        
+        # Active Perturbation Phase
+        if epoch >= epochs - 20:
+            perturbation = 0.5 * torch.sin(10 * np.pi * x_f) * torch.cos(10 * np.pi * t_f)
+            f_pred = f_pred + perturbation
+            
         loss_f = nn.MSELoss()(f_pred, torch.zeros_like(f_pred))
         
         loss = loss_f + 100 * (loss_ic + loss_bc)
         loss.backward()
         optimizer.step()
         
-        if epoch % 50 == 0:
+        if epoch >= epochs - 20:
             with torch.no_grad():
                 u_snap = pinn(x_grid_flat, t_grid_flat).view(Nx, Nt_pred).numpy()
                 snapshots.append(u_snap.copy())
@@ -155,8 +161,8 @@ for nu, label in nu_list:
     
     true_error = np.mean(np.abs(final_pinn - U_exact), axis=1) # [Nx]
     
-    # Compute Temporal Variance (All snapshots for easy PDEs)
-    S = np.array([s.flatten() for s in snapshots]).T # [Nx*Nt_pred, K]
+    # Compute Temporal Variance (Over the active perturbation phase)
+    S = np.array([s.flatten() for s in snapshots]).T # [Nx*Nt_pred, 20]
     var_flat = np.var(S, axis=1)
     var_spatial = np.mean(var_flat.reshape(Nx, Nt_pred), axis=1) # [Nx]
     

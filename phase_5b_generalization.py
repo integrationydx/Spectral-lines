@@ -83,19 +83,29 @@ class NavierStokesPINN(nn.Module):
     def forward(self, x, y):
         return self.net(torch.cat([x, y], dim=1))
 
-class Conv2DNet(nn.Module):
+class GCNLayer(nn.Module):
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        self.linear = nn.Linear(in_features, out_features)
+        
+    def forward(self, x, adj):
+        h = self.linear(x)
+        return torch.matmul(adj, h)
+
+class GNNIndicator(nn.Module):
     def __init__(self, in_ch):
         super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_ch, 32, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Conv2d(32, 16, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Flatten(),
-            nn.Linear(16 * 4 * 4, 32), nn.ReLU(),
-            nn.Linear(32, 1)
-        )
-    def forward(self, x):
-        return self.conv(x)
+        self.gcn1 = GCNLayer(in_ch, 64)
+        self.gcn2 = GCNLayer(64, 32)
+        self.gcn3 = GCNLayer(32, 16)
+        self.fc = nn.Linear(16, 1)
+        self.relu = nn.ReLU()
+        
+    def forward(self, x, adj):
+        x = self.relu(self.gcn1(x, adj))
+        x = self.relu(self.gcn2(x, adj))
+        x = self.relu(self.gcn3(x, adj))
+        return self.fc(x)
 
 # ─────────────────────────────────────────────────────────────
 # REYNOLDS SWEEP PIPELINE
@@ -189,28 +199,31 @@ for Re in reynolds_numbers:
     mag_pred = np.sqrt(u.detach().numpy()**2 + v.detach().numpy()**2).reshape(Nx, Ny)
     true_error_2d = np.abs(mag_pred - Mag_exact)
     
-    # 4. DMD
-    S = np.array(snapshots).T
-    U, sigma, Vt = svd(S[:, :-1], full_matrices=False)
+    # 4. Hankel DMD (HDMD)
+    S = np.array(snapshots).T # [Nx*Ny, N_snap]
+    N_space, N_snap = S.shape
+    d = 3 # delay embedding
+    cols = N_snap - d + 1
+    H = np.zeros((N_space * d, cols))
+    for i in range(cols):
+        H[:, i] = S[:, i:i+d].flatten(order='F')
+    
+    H1 = H[:, :-1]
+    H2 = H[:, 1:]
+    
+    U, sigma, Vt = svd(H1, full_matrices=False)
     r = 25
     U_r = U[:, :r]; sigma_r = sigma[:r]; Vt_r = Vt[:r, :]
-    A_tilde = U_r.T @ S[:, 1:] @ Vt_r.T @ np.diag(1.0 / sigma_r)
+    A_tilde = U_r.T @ H2 @ Vt_r.T @ np.diag(1.0 / sigma_r)
     eigvals, W = np.linalg.eig(A_tilde)
-    Phi = S[:, 1:] @ Vt_r.T @ np.diag(1.0 / sigma_r) @ W
-    Phi_spatial = np.abs(Phi).reshape(Nx, Ny, r)
+    Phi_full = H2 @ Vt_r.T @ np.diag(1.0 / sigma_r) @ W
     
-    # Extract 9x9 patches
-    pad = 4
-    Phi_pad = np.pad(Phi_spatial, ((pad, pad), (pad, pad), (0, 0)), mode='edge')
-    windows = np.zeros((Nx * Ny, r, 9, 9))
-    idx = 0
-    for i in range(Nx):
-        for j in range(Ny):
-            windows[idx] = Phi_pad[i:i+9, j:j+9, :].transpose(2, 0, 1)
-            idx += 1
-            
+    # Extract spatial modes (first block)
+    Phi_spatial_flat = np.abs(Phi_full[:N_space, :])
+    Phi_spatial = Phi_spatial_flat.reshape(Nx, Ny, r)
+    
     data_store[Re] = {
-        'windows': windows,
+        'node_features': Phi_spatial_flat,
         'true_error': true_error_2d.flatten(),
         'residual': residual_magnitude.flatten(),
         'Phi_spatial': Phi_spatial,
@@ -234,68 +247,98 @@ plt.savefig(out_dir / 'phase5b_mode_alignment.png')
 print("\n✓ Mode Alignment Figure saved → outputs/phase5b_mode_alignment.png")
 
 # ─────────────────────────────────────────────────────────────
-# TRAIN CNN ON [Re=20, Re=25] ENVELOPE
+# TRAIN GNN ON [Re=20, Re=25] ENVELOPE
 # ─────────────────────────────────────────────────────────────
 set_seeds()
-print("\nTraining CNN on [Re=20, Re=25] Envelope...")
-train_windows = np.vstack([data_store[20]['windows'], data_store[25]['windows']])
+print("\nTraining GNN on [Re=20, Re=25] Envelope...")
+V = Nx * Ny
+A = np.zeros((V, V), dtype=np.float32)
+for i in range(Nx):
+    for j in range(Ny):
+        k = i * Ny + j
+        # Causal downstream edge
+        if i + 1 < Nx:
+            k_down = (i + 1) * Ny + j
+            A[k_down, k] = 1.0  # k points to k_down (message flows from k to k_down)
+        # Transverse edges
+        if j + 1 < Ny:
+            k_up = i * Ny + (j + 1)
+            A[k_up, k] = 1.0
+            A[k, k_up] = 1.0
+        if j - 1 >= 0:
+            k_down_trans = i * Ny + (j - 1)
+            A[k_down_trans, k] = 1.0
+            A[k, k_down_trans] = 1.0
+            
+# Add self-loops and normalize
+A = A + np.eye(V)
+D = np.sum(A, axis=1, keepdims=True)
+A_norm = A / D
+A_norm_t = torch.tensor(A_norm, dtype=torch.float32)
+
+train_features = np.vstack([data_store[20]['node_features'], data_store[25]['node_features']])
 train_errors = np.concatenate([data_store[20]['true_error'], data_store[25]['true_error']])
 
-train_mean = train_windows.mean(axis=0, keepdims=True)
-train_std = train_windows.std(axis=0, keepdims=True) + 1e-8
-train_windows_scaled = (train_windows - train_mean) / train_std
+train_mean = train_features.mean(axis=0, keepdims=True)
+train_std = train_features.std(axis=0, keepdims=True) + 1e-8
 y_max = train_errors.max() + 1e-8
-train_errors_scaled = train_errors / y_max
 
-win_tr_t = torch.tensor(train_windows_scaled, dtype=torch.float32)
-y_tr_t = torch.tensor(train_errors_scaled, dtype=torch.float32).unsqueeze(1)
-loader = DataLoader(TensorDataset(win_tr_t, y_tr_t), batch_size=128, shuffle=True)
+feat20 = (data_store[20]['node_features'] - train_mean) / train_std
+feat25 = (data_store[25]['node_features'] - train_mean) / train_std
+err20 = data_store[20]['true_error'] / y_max
+err25 = data_store[25]['true_error'] / y_max
 
-cnn = Conv2DNet(in_ch=25)
-optimizer_cnn = optim.Adam(cnn.parameters(), lr=0.005)
+feat20_t = torch.tensor(feat20, dtype=torch.float32)
+feat25_t = torch.tensor(feat25, dtype=torch.float32)
+err20_t = torch.tensor(err20, dtype=torch.float32).unsqueeze(1)
+err25_t = torch.tensor(err25, dtype=torch.float32).unsqueeze(1)
 
-cnn.train()
-for _ in range(80):
-    for bx, by in loader:
-        optimizer_cnn.zero_grad()
-        loss_c = nn.MSELoss()(cnn(bx), by)
-        loss_c.backward()
-        optimizer_cnn.step()
+gnn = GNNIndicator(in_ch=25)
+optimizer_gnn = optim.Adam(gnn.parameters(), lr=0.005)
 
-cnn.eval()
+gnn.train()
+for _ in range(800): # Full-batch graph training
+    optimizer_gnn.zero_grad()
+    out20 = gnn(feat20_t, A_norm_t)
+    out25 = gnn(feat25_t, A_norm_t)
+    loss = nn.MSELoss()(out20, err20_t) + nn.MSELoss()(out25, err25_t)
+    loss.backward()
+    optimizer_gnn.step()
+
+gnn.eval()
 
 # ─────────────────────────────────────────────────────────────
 # ZERO-SHOT INFERENCE (Re=22, Re=30, Re=40)
 # ─────────────────────────────────────────────────────────────
 print("\n" + "="*100)
-print(f"{'Re':<5} | {'Test Type':<15} | {'PDE Residual':<15} | {'DMD+CNN (Zero-Shot)':<20} | {'Temporal Var':<15} | {'Status'}")
+print(f"{'Re':<5} | {'Test Type':<15} | {'PDE Residual':<15} | {'HDMD+GNN (Zero-Shot)':<20} | {'Temporal Var':<15} | {'Status'}")
 print("="*100)
 
 results = {}
 for Re, t_type in zip([22, 30, 40], ['Interpolation', 'Extrapolation', 'Extrapolation']):
-    win_test = data_store[Re]['windows']
+    feat_test = data_store[Re]['node_features']
     y_test = data_store[Re]['true_error']
     residual = data_store[Re]['residual']
     snapshots = data_store[Re]['snapshots']
     
     # STRICT NORMALIZATION TRANSFER (No Data Leakage)
-    win_test_scaled = (win_test - train_mean) / train_std
-    win_test_t = torch.tensor(win_test_scaled, dtype=torch.float32)
+    feat_test_scaled = (feat_test - train_mean) / train_std
+    feat_test_t = torch.tensor(feat_test_scaled, dtype=torch.float32)
     
     with torch.no_grad():
-        preds = cnn(win_test_t).squeeze().numpy() * y_max
+        preds = gnn(feat_test_t, A_norm_t).squeeze().numpy() * y_max
         preds = np.clip(preds, 0, None)
     
     S = np.array(snapshots).T
     var_flat = np.var(S[:, -20:], axis=1)
     
-    corr_cnn = np.corrcoef(y_test, preds)[0, 1]
+    corr_gnn = np.corrcoef(y_test, preds)[0, 1]
     corr_res = np.corrcoef(y_test, residual)[0, 1]
     corr_var = np.corrcoef(y_test, var_flat)[0, 1]
-    results[Re] = {'preds': preds, 'y': y_test, 'corr_cnn': corr_cnn, 'corr_res': corr_res, 'var': var_flat}
+    results[Re] = {'preds': preds, 'y': y_test, 'corr_gnn': corr_gnn, 'corr_res': corr_res, 'var': var_flat}
     
-    status = "SUCCESS" if (corr_var > corr_res and corr_var > 0.70) else "DEGRADED" if (corr_var > corr_res) else "FAILED"
-    print(f"{Re:<5} | {t_type:<15} | {corr_res:<15.4f} | {corr_cnn:<20.4f} | {corr_var:<15.4f} | {status}")
+    status = "SUCCESS" if (corr_gnn > corr_res and corr_gnn > 0.70) else "DEGRADED" if (corr_gnn > corr_res) else "FAILED"
+    print(f"{Re:<5} | {t_type:<15} | {corr_res:<15.4f} | {corr_gnn:<20.4f} | {corr_var:<15.4f} | {status}")
 print("="*100)
 
 # ─────────────────────────────────────────────────────────────
@@ -320,10 +363,10 @@ for Re in [22, 30, 40]:
     im = ax.contourf(X_grid, Y_grid, results[Re]['y'].reshape(Nx,Ny), levels=50, cmap='magma')
     style_ax(ax, f'Re={Re} True Error')
     
-    # CNN Prediction
+    # GNN Prediction
     ax = fig.add_subplot(gs[row, 1])
     im = ax.contourf(X_grid, Y_grid, results[Re]['preds'].reshape(Nx,Ny), levels=50, cmap='magma')
-    style_ax(ax, f'Re={Re} CNN (r={results[Re]["corr_cnn"]:.3f})')
+    style_ax(ax, f'Re={Re} GNN (r={results[Re]["corr_gnn"]:.3f})')
     
     # Residual
     ax = fig.add_subplot(gs[row, 2])
