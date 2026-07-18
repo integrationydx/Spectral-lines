@@ -14,14 +14,14 @@ PHASE 5B: Parametric Generalization (Reynolds Sweep)
 
 ✓ Mode Alignment Figure saved → outputs/phase5b_mode_alignment.png
 
-Training CNN on [Re=20, Re=25] Envelope...
+Training GNN on [Re=20, Re=25] Envelope...
 
 ====================================================================================================
-Re    | Test Type       | PDE Residual    | DMD+CNN (Zero-Shot)  | Temporal Var    | Status
+Re    | Test Type       | PDE Residual    | HDMD+GNN (Zero-Shot) | Temporal Var    | Status
 ====================================================================================================
-22    | Interpolation   | -0.0164         | 0.1352               | 0.8066          | SUCCESS
-30    | Extrapolation   | -0.0544         | 0.0493               | 0.4911          | DEGRADED
-40    | Extrapolation   | 0.1235          | -0.2380              | 0.2424          | DEGRADED
+22    | Interpolation   | -0.0164         | -0.0868              | 0.8066          | FAILED
+30    | Extrapolation   | -0.0544         | -0.2065              | 0.4911          | FAILED
+40    | Extrapolation   | 0.1235          | 0.1597               | 0.2424          | DEGRADED
 ====================================================================================================
 
 ✓ Phase 5B metrics figure saved → outputs/phase5b_generalization.png
