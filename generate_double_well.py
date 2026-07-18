@@ -3,6 +3,15 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
+import matplotlib as mpl
+
+# Enforce guide's aesthetic requirements
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['font.serif'] = ['Times New Roman']
+mpl.rcParams['axes.grid'] = False
+mpl.rcParams['figure.facecolor'] = 'white'
+mpl.rcParams['axes.facecolor'] = 'white'
+mpl.rcParams['savefig.facecolor'] = 'white'
 
 # Define the Kramers 1D double-well potential
 x = np.linspace(-2, 2, 500)
@@ -29,10 +38,9 @@ ax.set_title("Eyring-Kramers 1D Escape Potential", fontsize=16)
 ax.set_xlabel("State space (x)", fontsize=14)
 ax.set_ylabel("Loss Landscape / Energy (U)", fontsize=14)
 ax.legend(fontsize=12)
-ax.grid(True, linestyle='--', alpha=0.6)
 
 # Save
 os.makedirs("outputs", exist_ok=True)
 plt.tight_layout()
-plt.savefig("outputs/double_well.png", dpi=150)
-print("Saved double well diagram to outputs/double_well.png")
+plt.savefig("outputs/double_well.pdf", format="pdf")
+print("Saved double well diagram to outputs/double_well.pdf")
