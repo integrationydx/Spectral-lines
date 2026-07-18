@@ -21,6 +21,7 @@ import warnings
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import os
 from torch.utils.data import TensorDataset, DataLoader
 
 warnings.filterwarnings('ignore')
@@ -33,8 +34,9 @@ print("=" * 80)
 # FIXED GLOBAL SETTINGS & GRID
 # ─────────────────────────────────────────────────────────────
 def set_seeds():
-    np.random.seed(42)
-    torch.manual_seed(42)
+    pinn_seed = int(os.environ.get("PINN_SEED", 42))
+    np.random.seed(pinn_seed)
+    torch.manual_seed(pinn_seed)
 
 Nx, Ny = 50, 50
 x_val = np.linspace(-0.5, 1.0, Nx)

@@ -25,10 +25,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
+import os
 
 warnings.filterwarnings('ignore')
-np.random.seed(42)
-torch.manual_seed(42)
+# --- 1. PINN & DMD Setup (Allen-Cahn) ---
+pinn_seed = int(os.environ.get("PINN_SEED", 42))
+np.random.seed(pinn_seed)
+torch.manual_seed(pinn_seed)
 
 print("=" * 70)
 print("PHASE 4: Allen-Cahn Benchmark (Real PINN Dynamics)")
