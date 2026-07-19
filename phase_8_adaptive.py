@@ -206,7 +206,7 @@ def train_tvar(seed):
 # ─────────────────────────────────────────────────────────────
 # 4. EXECUTE AND VISUALIZE ACROSS SEEDS
 # ─────────────────────────────────────────────────────────────
-seeds = [42, 43, 44]
+seeds = [42, 43, 44, 45, 46]
 results = {
     "static": [],
     "rar": [],
@@ -241,7 +241,7 @@ mean_tvar = np.mean(results["tvar"])
 std_tvar = np.std(results["tvar"])
 
 print("\n" + "="*50)
-print("FINAL RESULTS ACROSS 3 SEEDS: MEAN ± STD MAE")
+print(f"FINAL RESULTS ACROSS {len(seeds)} SEEDS: MEAN ± STD MAE")
 print(f"Static Uniform : {mean_static:.5f} ± {std_static:.5f}")
 print(f"Standard RAR   : {mean_rar:.5f} ± {std_rar:.5f}")
 print(f"TVAR (Ours)    : {mean_tvar:.5f} ± {std_tvar:.5f}")
