@@ -17,9 +17,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import os
-
-torch.manual_seed(42)
-np.random.seed(42)
+import json
 
 print("=" * 70)
 print("PHASE 8: Active Adaptive Refinement")
@@ -112,13 +110,13 @@ N_add = 150
 epochs = 8000
 adapt_every = 800
 
-initial_pts = np.random.uniform([-1.0, 0.0], [1.0, 1.0], (N_initial, 2))
-
 # ─────────────────────────────────────────────────────────────
 # 3. TRAINING METHODS
 # ─────────────────────────────────────────────────────────────
-def train_static():
-    print("\n--- Training Static Baseline ---")
+def train_static(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    print(f"\n--- Training Static Baseline (Seed {seed}) ---")
     model = PINN()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     # Fair baseline: full 2000 points from the start
@@ -138,11 +136,13 @@ def train_static():
     mae = np.mean(np.abs(preds - exact_flat))
     return mae, pts
 
-def train_rar():
-    print("\n--- Training RAR (Residual Adaptive Refinement) ---")
+def train_rar(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    print(f"\n--- Training RAR (Residual Adaptive Refinement, Seed {seed}) ---")
     model = PINN()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    pts = initial_pts.copy()
+    pts = np.random.uniform([-1.0, 0.0], [1.0, 1.0], (N_initial, 2))
     xt_f = torch.tensor(pts, dtype=torch.float32, requires_grad=True)
     
     for ep in range(epochs):
@@ -165,11 +165,13 @@ def train_rar():
     mae = np.mean(np.abs(preds - exact_flat))
     return mae, pts
 
-def train_tvar():
-    print("\n--- Training TVAR (Temporal Variance Adaptive Refinement) ---")
+def train_tvar(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    print(f"\n--- Training TVAR (Temporal Variance Adaptive Refinement, Seed {seed}) ---")
     model = PINN()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    pts = initial_pts.copy()
+    pts = np.random.uniform([-1.0, 0.0], [1.0, 1.0], (N_initial, 2))
     xt_f = torch.tensor(pts, dtype=torch.float32, requires_grad=True)
     
     snapshots = []
@@ -202,31 +204,69 @@ def train_tvar():
     return mae, pts
 
 # ─────────────────────────────────────────────────────────────
-# 4. EXECUTE AND VISUALIZE
+# 4. EXECUTE AND VISUALIZE ACROSS SEEDS
 # ─────────────────────────────────────────────────────────────
-mae_static, pts_static = train_static()
-mae_rar, pts_rar = train_rar()
-mae_tvar, pts_tvar = train_tvar()
+seeds = [42, 43, 44]
+results = {
+    "static": [],
+    "rar": [],
+    "tvar": []
+}
+
+final_pts_static = None
+final_pts_rar = None
+final_pts_tvar = None
+
+for seed in seeds:
+    mae_s, pts_s = train_static(seed)
+    mae_r, pts_r = train_rar(seed)
+    mae_t, pts_t = train_tvar(seed)
+    
+    results["static"].append(mae_s)
+    results["rar"].append(mae_r)
+    results["tvar"].append(mae_t)
+    
+    # Save the last seed's points for plotting
+    final_pts_static = pts_s
+    final_pts_rar = pts_r
+    final_pts_tvar = pts_t
+
+mean_static = np.mean(results["static"])
+std_static = np.std(results["static"])
+
+mean_rar = np.mean(results["rar"])
+std_rar = np.std(results["rar"])
+
+mean_tvar = np.mean(results["tvar"])
+std_tvar = np.std(results["tvar"])
 
 print("\n" + "="*50)
-print("FINAL RESULTS: MEAN ABSOLUTE ERROR (MAE)")
-print(f"Static Uniform : {mae_static:.6f}")
-print(f"Standard RAR   : {mae_rar:.6f}")
-print(f"TVAR (Ours)    : {mae_tvar:.6f}")
+print("FINAL RESULTS ACROSS 3 SEEDS: MEAN ± STD MAE")
+print(f"Static Uniform : {mean_static:.5f} ± {std_static:.5f}")
+print(f"Standard RAR   : {mean_rar:.5f} ± {std_rar:.5f}")
+print(f"TVAR (Ours)    : {mean_tvar:.5f} ± {std_tvar:.5f}")
 print("="*50)
 
-# Visualization
+# Save results
+with open("phase8_results.json", "w") as f:
+    json.dump({
+        "static": {"mean": mean_static, "std": std_static, "raw": results["static"]},
+        "rar": {"mean": mean_rar, "std": std_rar, "raw": results["rar"]},
+        "tvar": {"mean": mean_tvar, "std": std_tvar, "raw": results["tvar"]}
+    }, f, indent=4)
+
+# Visualization (using the last seed's final points)
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-for i, (pts, title, mae) in enumerate([
-    (pts_static, "Static Uniform", mae_static), 
-    (pts_rar, "Residual Refinement (RAR)", mae_rar), 
-    (pts_tvar, "Temporal Variance (TVAR)", mae_tvar)]):
+for i, (pts, title, mean_mae, std_mae) in enumerate([
+    (final_pts_static, "Static Uniform", mean_static, std_static), 
+    (final_pts_rar, "Residual Refinement (RAR)", mean_rar, std_rar), 
+    (final_pts_tvar, "Temporal Variance (TVAR)", mean_tvar, std_tvar)]):
     
     ax = axes[i]
     cf = ax.contourf(T_grid, X_grid, U_exact, 50, cmap='RdBu', alpha=0.5)
     ax.scatter(pts[:, 1], pts[:, 0], s=2, c='black', alpha=0.6, label='Collocation Pts')
-    ax.set_title(f"{title}\nFinal MAE: {mae:.5f}")
+    ax.set_title(f"{title}\nMAE: {mean_mae:.4f} ± {std_mae:.4f}")
     ax.set_xlabel("Time (t)")
     ax.set_ylabel("Space (x)")
     ax.legend(loc="upper right")
